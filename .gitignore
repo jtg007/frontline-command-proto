@@ -1,0 +1,10 @@
+# Godot
+.godot/
+*.import.tmp
+# Build output
+build/
+dist/
+build_stamp.json
+# Test output
+tests/output/
+__pycache__/
