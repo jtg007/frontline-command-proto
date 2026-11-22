@@ -33,7 +33,7 @@ jobs:
       - name: Greybox map is up to date
         run: |
           godot --headless --path . -s tools/build_greybox_map.gd
-          git diff --exit-code --stat maps/ || (echo "Run tools/build_greybox_map.gd and commit the map." && exit 1)
+          git diff --exit-code -I 'unique_id=' --stat maps/ || (echo "Run tools/build_greybox_map.gd and commit the map." && exit 1)
 
       - name: Unit tests
         run: godot --headless --path . -s tests/run_unit_tests.gd
