@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  GODOT_VERSION: "4.7.2"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Godot ${{ env.GODOT_VERSION }}
+        run: |
+          curl -sSfL -o godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip
+          mv "Godot_v${GODOT_VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          godot --version
+
+      - name: Import project
+        run: godot --headless --path . --import || true
+
+      - name: Strict GDScript check (warnings are errors)
+        run: tools/check_scripts.sh godot
+
+      - name: Greybox map is up to date
+        run: |
+          godot --headless --path . -s tools/build_greybox_map.gd
+          git diff --exit-code -I 'unique_id=' --stat maps/ || (echo "Run tools/build_greybox_map.gd and commit the map." && exit 1)
+
+      - name: Unit tests
+        run: godot --headless --path . -s tests/run_unit_tests.gd
+
+      - name: Playtest 1 simulation (server + 3 headless clients over ENet)
+        run: python3 tests/integration/run_playtest1_sim.py --godot godot
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: tests/output/
